@@ -3,9 +3,9 @@ from master import Master
 from slave import Slave
 from worker import Worker
 
-def iniciar_slave(host, port, workers):
-    """Inicia un proceso de Slave que escucha conexiones."""
-    slave = Slave(host, port, workers)
+def iniciar_slave(host, port, workers, master_host, master_port):
+    """Inicia un proceso de Slave que escucha conexiones y conoce la dirección del Master."""
+    slave = Slave(host, port, workers, master_host, master_port)
     slave.aceptar_conexion_master()  # Inicia el Slave para recibir del Master
 
 def iniciar_worker(host, port):
@@ -31,11 +31,14 @@ if __name__ == "__main__":
         p.start()
         workers_processes.append(p)
 
-    # Iniciar los procesos de los Slaves
+    # Iniciar los procesos de los Slaves y pasarles la dirección del Master
     slaves_processes = []
-    slave_configs = [(slaves[0][0], slaves[0][1], workers_slave_1), (slaves[1][0], slaves[1][1], workers_slave_2)]
-    for slave_host, slave_port, slave_workers in slave_configs:
-        p = Process(target=iniciar_slave, args=(slave_host, slave_port, slave_workers))
+    slave_configs = [
+        (slaves[0][0], slaves[0][1], workers_slave_1, master_host, master_port),
+        (slaves[1][0], slaves[1][1], workers_slave_2, master_host, master_port)
+    ]
+    for slave_host, slave_port, slave_workers, master_host, master_port in slave_configs:
+        p = Process(target=iniciar_slave, args=(slave_host, slave_port, slave_workers, master_host, master_port))
         p.start()
         slaves_processes.append(p)
 

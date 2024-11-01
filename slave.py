@@ -4,18 +4,21 @@ import socket
 import json
 
 class Slave(Nodo):
-    def __init__(self, host, port, workers):
-        super().__init__(host, port)
-        self.workers = workers
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.bind((host, port))
-        self.server_socket.listen()
+    def __init__(self, host, port, workers, master_host, master_port):
+            super().__init__(host, port)
+            self.workers = workers
+            self.master_host = master_host
+            self.master_port = master_port
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.bind((host, port))
+            self.server_socket.listen()
 
     def aceptar_conexion_master(self):
         """Espera y recibe conexión del Master para recibir el texto a procesar."""
         conn, addr = self.server_socket.accept()
         print(f"Conectado al Master en {addr}")
         texto = self.recibir_texto(conn)  # Recibe texto del Master
+        print(f"Texto recibido del Master: {texto}")
         if texto:
             resultados = self.distribuir_a_workers(texto)
             self.enviar_resultado_al_master(resultados)
@@ -59,7 +62,7 @@ class Slave(Nodo):
         try:
             resultado_final = self.combinar_resultados(resultados)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as master_socket:
-                master_socket.connect((self.host, self.port))
+                master_socket.connect((self.master_host, self.master_port))
                 master_socket.sendall(json.dumps(resultado_final).encode('utf-8'))
                 print("Resultado final enviado al Master")
         except Exception as e:
@@ -69,6 +72,7 @@ class Slave(Nodo):
         """Combina los resultados parciales en un solo diccionario."""
         resultado_final = {}
         for resultado in resultados:
-            for palabra, frecuencia in resultado.items():
-                resultado_final[palabra] = resultado_final.get(palabra, 0) + frecuencia
+            if isinstance(resultado, dict):  # Asegurarse de que sea un diccionario
+                for palabra, frecuencia in resultado.items():
+                    resultado_final[palabra] = resultado_final.get(palabra, 0) + frecuencia
         return resultado_final
