@@ -1,4 +1,5 @@
-def dividir_partes(texto, inicio, partes):
+# dividir_partes debe devolver una lista como [[inicio1, fin1], [inicio2, fin2], ...]
+def splitt(texto, inicio, partes):
     rango = int(len(texto) / partes)
     fin = rango
     listaPartes = []
@@ -17,16 +18,13 @@ def dividir_partes(texto, inicio, partes):
             else:
                 Plus = Plus + 1
                 Minus = Minus - 1            
-        
-        listaPartes.append([inicio, fin])
-        print(f"Inicio: {inicio} Fin: {fin}")
 
+        listaPartes.append([inicio, fin])
         inicio = fin + 1
         fin = fin + rango
 
     listaPartes.append([inicio, len(texto) - 1])
-    print(f"Inicio: {inicio} Fin: {len(texto) - 1}")
-
     return listaPartes
+
 
 #by sebastian

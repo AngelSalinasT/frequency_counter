@@ -1,7 +1,5 @@
 import socket
 import json
-from split_text import splitt  # Usamos la función proporcionada para dividir texto
-from count import countt  # Usamos la función proporcionada para contar palabras
 
 
 # Clase base Nodo
@@ -34,21 +32,3 @@ class Nodo:
         except Exception as e:
             print(f"Error al recibir datos: {e}")
             return None
-
-
-
-# Ejemplo de inicialización y ejecución
-#if __name__ == "__main__":
-#    # Parámetros de ejemplo
-#    master_host = 'localhost'
-#    master_port = 5000
-#    slaves = [('localhost', 6000), ('localhost', 6001)]
-#    workers_slave_1 = [('localhost', 7000), ('localhost', 7001)]
-#    workers_slave_2 = [('localhost', 7002), ('localhost', 7003)]
-#    texto = "Aquí va el texto a procesar que se dividirá entre los nodos."#
-
-#    # Inicializa el master
-#    master = Master(master_host, master_port, slaves, texto)
-#    master.distribuir_texto()
-#    resultado_final = master.recibir_resultados()
-#    print("Resultado final:", resultado_final)
