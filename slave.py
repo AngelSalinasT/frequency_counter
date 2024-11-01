@@ -1,38 +1,69 @@
-from split_text import splitt  # Usamos la función proporcionada para dividir texto
-from node import Nodo 
+from node import Nodo
+from split_text import splitt  # Función para dividir el texto
+import socket
+import json
 
-# Clase Slave
 class Slave(Nodo):
     def __init__(self, host, port, workers):
         super().__init__(host, port)
-        self.workers = workers  # Lista de (host, port) de workers
+        self.workers = workers
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((host, port))
+        self.server_socket.listen()
 
-    def recibir_texto(self):
+    def aceptar_conexion_master(self):
+        """Espera y recibe conexión del Master para recibir el texto a procesar."""
+        conn, addr = self.server_socket.accept()
+        print(f"Conectado al Master en {addr}")
+        texto = self.recibir_texto(conn)  # Recibe texto del Master
+        if texto:
+            resultados = self.distribuir_a_workers(texto)
+            self.enviar_resultado_al_master(resultados)
+
+    def recibir_texto(self, conn):
         """Recibe la porción de texto desde el Master."""
-        texto = self.recibir()
-        print("Texto recibido del Master")
-        self.distribuir_a_workers(texto)
+        try:
+            data = conn.recv(4096).decode('utf-8')
+            print("Texto recibido del Master")
+            return data
+        except Exception as e:
+            print(f"Error al recibir texto del Master: {e}")
+            return ""
+        finally:
+            conn.close()
 
     def distribuir_a_workers(self, texto):
-        """Divide la parte del texto y distribuye a los Workers."""
+        """Divide la porción de texto y la distribuye a los Workers."""
         partes = splitt(texto, 0, len(self.workers))
         resultados = []
-        for i, (worker_host, worker_port) in enumerate(self.workers):
-            self.conectar(worker_host, worker_port)
-            parte_texto = texto[partes[i][0]:partes[i][1]]
-            self.enviar(parte_texto)
-            resultado = self.recibir()
-            if resultado:
-                resultados.append(resultado)
-            self.socket.close()
-        self.enviar_resultados_al_master(resultados)
 
-    def enviar_resultados_al_master(self, resultados):
-        """Envía los resultados combinados al Master."""
-        resultado_final = self.combinar_resultados(resultados)
-        self.conectar(self.host, self.port)
-        self.enviar(resultado_final)
-        self.socket.close()
+        for i, (worker_host, worker_port) in enumerate(self.workers):
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as worker_socket:
+                    worker_socket.connect((worker_host, worker_port))
+                    parte_texto = texto[partes[i][0]:partes[i][1]]
+                    worker_socket.sendall(parte_texto.encode('utf-8'))
+
+                    # Recibe resultado del Worker
+                    resultado = worker_socket.recv(4096)
+                    if resultado:
+                        resultados.append(json.loads(resultado.decode('utf-8')))
+                    print(f"Resultado recibido del Worker {worker_host}:{worker_port}")
+            except Exception as e:
+                print(f"Error al conectar con Worker {worker_host}:{worker_port} - {e}")
+
+        return self.combinar_resultados(resultados)
+
+    def enviar_resultado_al_master(self, resultados):
+        """Envía el resultado combinado al Master."""
+        try:
+            resultado_final = self.combinar_resultados(resultados)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as master_socket:
+                master_socket.connect((self.host, self.port))
+                master_socket.sendall(json.dumps(resultado_final).encode('utf-8'))
+                print("Resultado final enviado al Master")
+        except Exception as e:
+            print(f"Error al enviar resultado al Master: {e}")
 
     def combinar_resultados(self, resultados):
         """Combina los resultados parciales en un solo diccionario."""
