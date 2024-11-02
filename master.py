@@ -24,20 +24,23 @@ class Master(Nodo):
                 print(f"Error al conectar con Slave {slave_host}:{slave_port} - {e}")
 
     def recibir_resultados(self):
-        """Recibe los resultados combinados de cada Slave."""
+        """Espera recibir los resultados de cada Slave."""
         resultados = []
-
-        for slave_host, slave_port in self.slaves:
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as slave_socket:
-                    slave_socket.connect((slave_host, slave_port))
-                    resultado = slave_socket.recv(4096)
-                    if resultado:
-                        resultados.append(json.loads(resultado.decode('utf-8')))
-                    print(f"Resultado recibido del Slave {slave_host}:{slave_port}")
-            except Exception as e:
-                print(f"Error al recibir datos del Slave {slave_host}:{slave_port} - {e}")
-
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+            server_socket.bind((self.host, self.port))
+            server_socket.listen()
+            print("Esperando resultados de los Slaves...")
+            
+            for _ in self.slaves:
+                try:
+                    conn, addr = server_socket.accept()
+                    with conn:
+                        resultado = conn.recv(4096)
+                        if resultado:
+                            resultados.append(json.loads(resultado.decode('utf-8')))
+                        print(f"Resultado recibido del Slave en {addr}")
+                except Exception as e:
+                    print(f"Error al recibir datos de un Slave - {e}")
         return self.combinar_resultados(resultados)
     
     def combinar_resultados(self, resultados):
