@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # Parámetros de configuración con puertos menos comunes
     master_host = 'localhost'
     master_port = 8500
-    texto = "Aquí va el texto a procesar que se dividirá entre los nodos en diferentes puertos."
+    texto = "El perro corre rápidamente por el parque mientras los niños juegan con una pelota. El sol brilla y el aire es fresco, lo que hace que el día sea perfecto para jugar al aire libre."
 
     # Definir los Slaves y sus Workers con puertos poco comunes
     slaves = [('localhost', 8600), ('localhost', 8601)]
